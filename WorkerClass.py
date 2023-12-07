@@ -1,3 +1,4 @@
+##すべてのデータ操作はuser_idメインで行う
 import json
 import os
 
@@ -5,15 +6,28 @@ import os
 BASE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 FILE_PATH = './data/worker.json'
 DATA_PATH = os.path.join(BASE_ROOT_DIR, FILE_PATH)
-USERS = 'users'
 
+USERS_ID_DATA_REF = 'users_id'
+USERS_DATA_REF = 'users_data'
+
+USER_WORK_LEVEL_REF = "level"
+USER_PRIORITY_TIME = "優先時間"
+USER_PRIORITY_CLASS = "担当クラス"
 
 # 例として使用する辞書データ
 DATA_STRUCT = {
-    USERS: {
+    USERS_ID_DATA_REF: {
+    },
+    USERS_DATA_REF: {
     }
 }
 
+#データ構造
+user_data_struct = {
+    USER_WORK_LEVEL_REF: None, #猛者、普通、新人、パートで分ける
+    USER_PRIORITY_TIME: None,
+    USER_PRIORITY_CLASS: None,
+}
 
 # JSONファイルに書き込む関数を、ディレクトリの存在を確認して必要に応じて作成するように修正
 def Init_Data_File(file_path, data):
@@ -42,43 +56,39 @@ class WorkerDataLoader:
         else:
             return {}
 
-    def update_user_data(self, user_id, key, value):
-        """特定のユーザーデータを更新する"""
-        if USERS in self.data and user_id in self.data[USERS]:
-            self.data[USERS][user_id][key] = value
-            self.save_data()
-
     def generate_unique_user_id(self):
-        """利用可能な最小の整数型ユーザーIDを生成する"""
-        existing_ids = set(int(uid) for uid in self.data.get(USERS, {}).keys())
+        """利用可能な最小の整数型ユーザーIDを生成する""" ##randam生成にするか迷う
+        existing_ids = set(int(uid) for uid in self.data.get(USERS_DATA_REF, {}).keys())
         new_id = 1
         while new_id in existing_ids:
             new_id += 1
         return new_id
 
-    def add_user(self, name=None, mail_ad=None, age=None):
-        """新しいユーザーを追加する。ユーザーIDは自動で生成される"""
-        user_id = self.generate_unique_user_id()
-        user_data = {
-            "name": name if name is not None else None,
-            "age": age if age is not None else None,
-            "email": mail_ad if mail_ad is not None else None,
-            "is_member": True
-        }
-
-        if USERS not in self.data:
-            self.data[USERS] = {}
-        self.data[USERS][user_id] = user_data  # IDを文字列として保存
+    def add_user_id(self, name):
+        """ユーザーを追加し、IDを割り当てる"""
+        user_id = self.generate_unique_user_id() #idを生成
+        self.data[USERS_ID_DATA_REF][user_id] = name #idを追加
+        self.data[USERS_DATA_REF][user_id] = user_data_struct #データを追加
         self.save_data()
-        return user_id  # 追加されたユーザーIDを返す    
+        return
 
     def remove_user(self, user_id):
         """ユーザーを削除する"""
-        if USERS in self.data and user_id in self.data[USERS]:
-            del self.data[USERS][user_id]
+        if USERS_ID_DATA_REF in self.data and user_id in self.data[USERS_ID_DATA_REF]:
+            del self.data[USERS_ID_DATA_REF][user_id]
+        if USERS_DATA_REF in self.data and user_id in self.data[USERS_DATA_REF]:
+            del self.data[USERS_DATA_REF][user_id]
+            self.save_data()
+
+    def update_user_data(self, user_id, key, value):
+        """特定のユーザーデータを更新する"""
+        if USERS_DATA_REF in self.data and user_id in self.data[USERS_DATA_REF]:
+            self.data[USERS_DATA_REF][user_id][key] = value
             self.save_data()
 
     def save_data(self):
         """データをファイルに保存する"""
         with open(self.file_path, 'w', encoding='utf-8') as file:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
+
+
